@@ -30,6 +30,10 @@ See help for an up-to-date usage:
 test-transformers --help
 ```
 
+## Development
+
+Run a `make build` to download node_modules for local development.
+
 ## TODO
 
 It's currently hardcoded for alphaville-series - it's a simple change though to the `index.js` if you wish to test another transformer.
