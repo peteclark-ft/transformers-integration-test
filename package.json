@@ -5,14 +5,14 @@
   "main": "index.js",
   "author": "Peter Clark",
   "license": "MIT",
-
   "dependencies": {
     "child-process-promise": "^2.0.3",
     "request": "^2.73.0",
     "request-promise": "^4.0.1",
+    "sleep-async": "^1.0.1",
+    "sprintf-js": "^1.0.3",
     "yargs": "^4.8.1"
   },
-
   "bin": {
     "test-transformers": "./index.js"
   }

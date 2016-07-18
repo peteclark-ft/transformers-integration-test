@@ -2,15 +2,28 @@
 
 let request = require('request-promise');
 let exec = require('child-process-promise').exec;
+let sleep = require('sleep-async')();
+let sprintf = require('sprintf-js').sprintf;
+
 let argv = require('yargs')
   .option('environment', {
     alias: 'e',
-    describe: 'The environment shortname (the environment is assumed to follow the standard url naming for tunnel and api urls!)'
+    describe: 'The environment shortname (the environment is assumed to follow the standard url naming for tunnel and api urls!)',
+    type: 'string'
   })
   .option('limit', {
     alias: 'l',
-    describe: 'The number of ids to test.'
+    describe: 'The number of ids to test.',
+    type: 'integer'
   })
+  .option('concept_publisher', {
+    alias: 'c',
+    describe: 'Should we also test the concept-publisher?',
+    type: 'boolean'
+  })
+  .alias('v', 'version')
+  .version(function() { return require('../package').version; })
+  .describe('v', 'show version information')
   .demand('e')
   .alias('h', 'help')
   .help()
@@ -73,6 +86,33 @@ function getContent(credentials, uuid){
   }).catch(onerror);
 }
 
+function createConceptPublisherJob(credentials){
+  return request({
+    method: 'POST',
+    uri: 'https://' + argv.environment + '-up.ft.com/__concept-publisher/jobs',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Basic ' + new Buffer(credentials.user + ':' + credentials.pass).toString('base64')
+    },
+    body: {
+      concept: "alphaville-series",
+      url: "/__alphaville-series-transformer/transformers/alphaville-series/",
+      throttle: 100
+    },
+    json: true
+  }).catch(onerror);
+}
+
+function getConceptPublisherJob(credentials, id){
+  return request({
+    uri: 'https://' + argv.environment + '-up.ft.com/__concept-publisher/jobs/' + id,
+    headers: {
+      Authorization: 'Basic ' + new Buffer(credentials.user + ':' + credentials.pass).toString('base64')
+    },
+    json: true
+  }).catch(onerror);
+}
+
 getAuth().then(credentials => {
   var promises = [];
   promises.push(getAllContent(credentials));
@@ -86,14 +126,14 @@ getAuth().then(credentials => {
     if(allResults.length !== parseInt(count)){
       throw new Error('FAIL: Results and count are not equal!!');
     } else {
-      console.log('TEST: The full result set length and the __count are equal 😊');
+      console.log(sprintf('%-100s %-20s %s', 'TEST: The full result set length and the __count are equal.', '', '😊'));
     }
 
     var ids = results[2].trim().split('\n');
     if (allResults.length !== ids.length){
       throw new Error('FAIL: __count and __ids are not equal!!');
     } else {
-      console.log('TEST: The __ids length and the __count are equal 😊');
+      console.log(sprintf('%-100s %-20s %s', 'TEST: The __ids length and the __count are equal.', '', '😊'));
     }
 
     if (argv.limit){
@@ -119,8 +159,42 @@ getAuth().then(credentials => {
       if (check.length > 0) {
         throw new Error('FAIL: Not all requests using ids from the __ids call resulted in correctly formatted json in a direct call!!');
       } else {
-        console.log('TEST: All __ids that were tested appeared to contain valid data! 😊');
+        console.log(sprintf('%-100s %-20s %s', 'TEST: All __ids that were tested appeared to contain valid data!', '', '😊'));
       }
+    });
+
+    if (!argv.concept_publisher){
+      return;
+    }
+
+    createConceptPublisherJob(credentials).then(result => {
+      var check = {
+        status: 'In progress'
+      };
+
+      sleep.sleepWithCondition(function(){
+        if (check.status === 'In progress'){
+          getConceptPublisherJob(credentials, result.jobId).then(result => {
+            check = result;
+          });
+          return false;
+        }
+        return true;
+      },
+      5000,
+      function(){
+        if (check.status && check.status === 'Completed'
+          && check.concept && check.concept === 'alphaville-series'
+          && check.throttle && check.throttle === 100
+          && check.count === allResults.length
+          && check.done === check.count
+        ) {
+          console.log(sprintf('%-100s %-20s %s', 'TEST: Concept Publisher job created and completed successfully!', '', '😊'));
+        } else {
+          console.log(check);
+          throw new Error('FAIL: Concept Publisher job failed to complete successfully!')
+        }
+      });
     });
   }).catch(onerror);
 }).catch(onerror);

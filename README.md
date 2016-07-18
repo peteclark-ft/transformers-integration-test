@@ -5,6 +5,7 @@ Integration test for generic transformers. Performs the following tests:
 * Checks that the number of items in a /transformers/your-type/ matches the /\_\_count
 * Checks that the /\_\_count matches the number of ids in /\_\_ids.
 * Checks that making calls to /\_\_ids /transformers/your-type/{uuid} are valid, and return all expected fields.
+* Optionally creates a concept-publisher job, and checks if it succeeds.
 
 ## Install
 
