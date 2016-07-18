@@ -1,6 +1,6 @@
 {
   "name": "transformers-integration-test",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Tests transformer end-points",
   "main": "index.js",
   "author": "Peter Clark",
