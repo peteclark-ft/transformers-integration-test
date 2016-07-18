@@ -6,6 +6,11 @@ let sleep = require('sleep-async')();
 let sprintf = require('sprintf-js').sprintf;
 
 let argv = require('yargs')
+  .option('concept', {
+    alias: 'c',
+    describe: 'The type of concept you wish to test.',
+    type: 'string'
+  })
   .option('environment', {
     alias: 'e',
     describe: 'The environment shortname (the environment is assumed to follow the standard url naming for tunnel and api urls!)',
@@ -17,7 +22,7 @@ let argv = require('yargs')
     type: 'integer'
   })
   .option('concept_publisher', {
-    alias: 'c',
+    alias: 'p',
     describe: 'Should we also test the concept-publisher?',
     type: 'boolean'
   })
@@ -50,7 +55,7 @@ function getAuth(){
 
 function getAllContent(credentials){
   return request({
-    uri: 'https://' + argv.environment + '-up.ft.com/__alphaville-series-transformer/transformers/alphaville-series',
+    uri: 'https://' + argv.environment + '-up.ft.com/__'+ argv.concept +'-transformer/transformers/' + argv.concept,
     headers: {
       Authorization: 'Basic ' + new Buffer(credentials.user + ':' + credentials.pass).toString('base64')
     },
@@ -60,7 +65,7 @@ function getAllContent(credentials){
 
 function getCount(credentials){
   return request({
-    uri: 'https://' + argv.environment + '-up.ft.com/__alphaville-series-transformer/transformers/alphaville-series/__count',
+    uri: 'https://' + argv.environment + '-up.ft.com/__'+argv.concept+'-transformer/transformers/'+argv.concept+'/__count',
     headers: {
       Authorization: 'Basic ' + new Buffer(credentials.user + ':' + credentials.pass).toString('base64')
     }
@@ -69,7 +74,7 @@ function getCount(credentials){
 
 function getIds(credentials){
   return request({
-    uri: 'https://' + argv.environment + '-up.ft.com/__alphaville-series-transformer/transformers/alphaville-series/__ids',
+    uri: 'https://' + argv.environment + '-up.ft.com/__'+argv.concept+'-transformer/transformers/'+argv.concept+'/__ids',
     headers: {
       Authorization: 'Basic ' + new Buffer(credentials.user + ':' + credentials.pass).toString('base64')
     }
@@ -78,7 +83,7 @@ function getIds(credentials){
 
 function getContent(credentials, uuid){
   return request({
-    uri: 'https://' + argv.environment + '-up.ft.com/__alphaville-series-transformer/transformers/alphaville-series/' + uuid,
+    uri: 'https://' + argv.environment + '-up.ft.com/__'+argv.concept+'-transformer/transformers/'+argv.concept+'/' + uuid,
     headers: {
       Authorization: 'Basic ' + new Buffer(credentials.user + ':' + credentials.pass).toString('base64')
     },
@@ -95,8 +100,8 @@ function createConceptPublisherJob(credentials){
       Authorization: 'Basic ' + new Buffer(credentials.user + ':' + credentials.pass).toString('base64')
     },
     body: {
-      concept: "alphaville-series",
-      url: "/__alphaville-series-transformer/transformers/alphaville-series/",
+      concept: argv.concept,
+      url: '/__'+argv.concept+'-transformer/transformers/'+argv.concept+'/',
       throttle: 100
     },
     json: true
@@ -184,7 +189,7 @@ getAuth().then(credentials => {
       5000,
       function(){
         if (check.status && check.status === 'Completed'
-          && check.concept && check.concept === 'alphaville-series'
+          && check.concept && check.concept === argv.concept
           && check.throttle && check.throttle === 100
           && check.count === allResults.length
           && check.done === check.count
