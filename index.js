@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 let request = require('request-promise');
 let exec = require('child-process-promise').exec;
 let argv = require('yargs')
@@ -9,6 +11,7 @@ let argv = require('yargs')
     alias: 'l',
     describe: 'The number of ids to test.'
   })
+  .demand('e')
   .alias('h', 'help')
   .help()
   .argv;
