@@ -16,19 +16,19 @@ Clone the repo, and run `make` in the project directory.
 To run the full suite of tests against an environment:
 
 ```
-test-transformers -e dynpub-uk
+test-transformers -c alphaville-series -e dynpub-uk
 ```
 
 To randomly select a number of elements from the ids array, and only test against those (recommended for large result sets):
 
 ```
-test-transformers -e dynpub-uk -l 50
+test-transformers -c alphaville-series -e dynpub-uk -l 50
 ```
 
 To also run the concept-publisher test:
 
 ```
-test-transformers -e dynpub-uk -l 50 -c
+test-transformers -c alphaville-series -e dynpub-uk -l 50 -c
 ```
 
 See help for an up-to-date usage:
@@ -40,7 +40,3 @@ test-transformers --help
 ## Development
 
 Run a `make build` to download node_modules for local development.
-
-## TODO
-
-It's currently hardcoded for alphaville-series - it's a simple change though to the `index.js` if you wish to test another transformer.
