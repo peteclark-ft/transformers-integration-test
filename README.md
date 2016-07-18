@@ -25,6 +25,12 @@ To randomly select a number of elements from the ids array, and only test agains
 test-transformers -e dynpub-uk -l 50
 ```
 
+To also run the concept-publisher test:
+
+```
+test-transformers -e dynpub-uk -l 50 -c
+```
+
 See help for an up-to-date usage:
 
 ```
