@@ -5,8 +5,8 @@ let sprintf = require('sprintf-js').sprintf;
 let fs = require('fs');
 let exampleMsg = fs.readFileSync('./example.msg', 'utf8');
 
-function getAuth(){
-  return exec("ssh -t dynpub-uk-tunnel-up.ft.com 'fleetctl ssh deployer etcdctl get /ft/_credentials/varnish/htpasswd' 2> /dev/null | sed -n 1'p' | tr ',' '\\n' | head -1")
+function getAuth(env){
+  return exec("ssh -t " + env + "-tunnel-up.ft.com 'fleetctl ssh deployer etcdctl get /ft/_credentials/varnish/htpasswd' 2> /dev/null | sed -n 1'p' | tr ',' '\\n' | head -1")
     .then(function(result){
       var credentials = result.stdout.split(':');
       return Promise.resolve({
@@ -16,11 +16,11 @@ function getAuth(){
     });
 };
 
-function createKafkaConsumer(credentials){
+function createKafkaConsumer(env, credentials){
   console.log('Creating new consumer in group!', 'tmp-integration-test-consumer');
   return request({
     method: 'POST',
-    uri: 'https://dynpub-uk-up.ft.com/__kafka-rest-proxy/consumers/tmp-integration-test-consumer',
+    uri: 'https://'+ env +'-up.ft.com/__kafka-rest-proxy/consumers/tmp-integration-test-consumer',
     headers: {
       'Content-Type': 'application/vnd.kafka.v1+json',
       Authorization: 'Basic ' + new Buffer(credentials.user + ':' + credentials.pass).toString('base64')
@@ -34,20 +34,20 @@ function createKafkaConsumer(credentials){
   });
 };
 
-function deleteKafkaConsumer(credentials, consumer){
+function deleteKafkaConsumer(env, credentials, consumer){
   console.log('Deleting consumer!', consumer);
   return request({
     method: 'DELETE',
-    uri: format(consumer.base_uri),
+    uri: format(env, consumer.base_uri),
     headers: {
       Authorization: 'Basic ' + new Buffer(credentials.user + ':' + credentials.pass).toString('base64')
     }
   });
 };
 
-function consumeTopic(credentials, consumer, topic){
+function consumeTopic(env, credentials, consumer, topic){
   return request({
-    uri: format(consumer.base_uri) + '/topics/' + topic,
+    uri: format(env, consumer.base_uri) + '/topics/' + topic,
     headers: {
       Accept: 'application/vnd.kafka.binary.v1+json',
       Authorization: 'Basic ' + new Buffer(credentials.user + ':' + credentials.pass).toString('base64')
@@ -56,10 +56,10 @@ function consumeTopic(credentials, consumer, topic){
   });
 };
 
-function sendMessage(credentials, topic, msg){
+function sendMessage(env, credentials, topic, msg){
   return request({
     method: 'POST',
-    uri: 'https://dynpub-uk-up.ft.com/__kafka-rest-proxy/topics/' + topic,
+    uri: 'https://'+ env +'-up.ft.com/__kafka-rest-proxy/topics/' + topic,
     headers: {
       'Content-Type': 'application/vnd.kafka.binary.v1+json',
       Authorization: 'Basic ' + new Buffer(credentials.user + ':' + credentials.pass).toString('base64')
@@ -75,9 +75,9 @@ function sendMessage(credentials, topic, msg){
   });
 };
 
-function format(uri){
+function format(env, uri){
   var stripped = uri.replace('http://', '');
-  return 'https://dynpub-uk-up.ft.com/__kafka-rest-proxy' + stripped.substr(stripped.indexOf('/'));
+  return 'https://'+env+'-up.ft.com/__kafka-rest-proxy' + stripped.substr(stripped.indexOf('/'));
 }
 
 function parseMessage(msg){
@@ -108,19 +108,19 @@ function onerror(err){
 
 let argv = require('yargs')
   .command('send', 'Send a test message to NativeCmsMetadataPublicationEvents.', yargs => {}, function(argv){
-    getAuth().then(credentials => {
-      sendMessage(credentials, 'NativeCmsMetadataPublicationEvents', exampleMsg).then(sendResponse => {
+    getAuth(argv.env).then(credentials => {
+      sendMessage(argv.env, credentials, 'NativeCmsMetadataPublicationEvents', exampleMsg).then(sendResponse => {
         console.log(sendResponse);
       });
     });
   })
-  .command('test <topic>', 'Consume the messages off the provided topic, and check for the test message.', yargs => {}, function(argv){
-    getAuth().then(credentials => {
-      createKafkaConsumer(credentials).then(consumer => {
-        consumeTopic(credentials, consumer, argv.topic).then(msgs => {
+  .command('test <env> <topic>', 'Consume the messages off the provided topic, and check for the test message.', yargs => {}, function(argv){
+    getAuth(argv.env).then(credentials => {
+      createKafkaConsumer(argv.env, credentials).then(consumer => {
+        consumeTopic(argv.env, credentials, consumer, argv.topic).then(msgs => {
           if (!msgs || !msgs.length || msgs.length === 0){
             console.log(sprintf('%-100s', 'FAIL: No messages to consume!'));
-            deleteKafkaConsumer(credentials, consumer).then(d => {});
+            deleteKafkaConsumer(argv.env, credentials, consumer).then(d => {});
             return;
           }
 
@@ -150,11 +150,11 @@ let argv = require('yargs')
               console.log(JSON.stringify(filtered[0], null, ' '));
               throw new Error("FAIL: The test message Alphaville Series suggestion contains unexpected data!");
             }
-            
+
             console.log(sprintf('%-100s %-20s %s', 'TEST: Alphaville Series suggestion found and is valid!', '', '😊'));
           });
 
-          deleteKafkaConsumer(credentials, consumer).then(d => {});
+          deleteKafkaConsumer(argv.env, credentials, consumer).then(d => {});
         });
       });
     });
